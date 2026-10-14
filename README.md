@@ -60,7 +60,7 @@ npm run eval                                                   # the configured 
 npm run eval -- --models nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free   # each model on its own
 ```
 
-The report includes how many questions passed only thanks to self-correction.
+The report includes how many questions passed only thanks to self-correction. `--only id1,id2` re-runs a subset.
 
 <!-- Results table: run `npm run eval` per model and paste the summary here. -->
 

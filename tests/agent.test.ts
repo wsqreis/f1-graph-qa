@@ -126,3 +126,14 @@ describe('text-to-Cypher agent', () => {
     assert.equal(generateMessages.at(-1), 'And in 2020?');
   });
 });
+
+describe('declining', () => {
+  it('treats a "None" string from the model as no query', async () => {
+    const model = new ScriptedModel({ cypher: 'None', unanswerable: 'Pit stops are not in the graph' });
+    const db = new FakeDb({});
+    const state = await ask(model, db, 'Fastest pit stop?');
+    assert.deepEqual(db.ran, []);
+    assert.equal(state.attempts, 1);
+    assert.equal(state.unanswerable, 'Pit stops are not in the graph');
+  });
+});

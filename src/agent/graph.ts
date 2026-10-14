@@ -23,6 +23,9 @@ export const AgentState = Annotation.Root({
 type State = typeof AgentState.State;
 type Update = typeof AgentState.Update;
 
+/** Some models write the string "None" or "null" instead of a JSON null when declining. */
+const noQuery = (cypher: string | null | undefined) => !cypher || /^\s*(none|null|n\/a)?\s*$/i.test(cypher);
+
 /** Earlier questions and answers, so follow-ups like "and in 2020?" can be resolved. */
 const HISTORY = 4;
 
@@ -43,9 +46,10 @@ export function buildAgent(
       ? fixPrompt(await until(), `Query:\n${state.cypher}\nProblem: ${state.problem}`)
       : cypherPrompt(await until());
     const output = await model.extract(generation, [new SystemMessage(system), ...state.messages.slice(-HISTORY - 1)]);
+    const cypher = noQuery(output.cypher) ? null : output.cypher!.trim();
     return {
-      cypher: output.cypher?.trim() || null,
-      unanswerable: output.cypher ? null : output.unanswerable || 'That question is outside the F1 results data.',
+      cypher,
+      unanswerable: cypher ? null : output.unanswerable || 'That question is outside the F1 results data.',
       attempts: state.attempts + 1,
     };
   }

@@ -23,8 +23,10 @@ Relationships:
 Meaning:
 - One Result per driver per Grand Prix. Sprint races, qualifying and practice are not in the data.
 - Win: Result.position = 1. Podium: position <= 3. Started from pole: grid = 1. Did not finish: classified = false.
+- Season totals (points, wins, position) come from FINISHED_SEASON, which includes sprint points. Summing Result.points only counts Grand Prix points.
 - A championship title is FINISHED_SEASON.position = 1 on a Season with complete = true. For the season in progress (complete = false), position 1 is only the current leader.
 - Team names are historical: "Red Bull", "Toro Rosso", "AlphaTauri" and "RB" are different Team nodes; so are "Brawn" and "Mercedes".
+- Ages and gaps between dates: duration.inDays(date(d.dateOfBirth), race.date).days gives total days. duration.between(...).days is only the days component of a years-months-days duration, so never use it to compare ages.
 - Some surnames are shared (Schumacher: Michael, Ralf, Mick; Hill: Graham, Damon, Phil; Villeneuve: Gilles, Jacques). If the question only gives a shared surname, group results by driver name instead of merging them.`;
 
 export const EXAMPLES = `Example questions and queries:

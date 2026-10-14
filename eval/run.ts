@@ -2,6 +2,7 @@
 //
 //   npm run eval                                  # the configured model chain
 //   npm run eval -- --models a/model:free,b/model  # each model on its own
+//   npm run eval -- --only case-a,case-b          # a subset of cases
 //
 // For each question, the agent's final query (after any self-correction) is compared
 // with a hand-written reference query by execution result. Questions with a null
@@ -25,7 +26,11 @@ if (!config.llm.apiKey) {
 }
 const flag = process.argv.indexOf('--models');
 const runs = flag > -1 ? (process.argv[flag + 1] ?? '').split(',').filter(Boolean) : [config.llm.models.join(',')];
-const cases: Case[] = JSON.parse(await readFile(new URL('./cases.json', import.meta.url), 'utf8'));
+const allCases: Case[] = JSON.parse(await readFile(new URL('./cases.json', import.meta.url), 'utf8'));
+// --only id1,id2 re-runs a subset, e.g. to check a fix without spending a full run's requests.
+const onlyFlag = process.argv.indexOf('--only');
+const only = onlyFlag > -1 ? new Set((process.argv[onlyFlag + 1] ?? '').split(',')) : null;
+const cases = only ? allCases.filter((testCase) => only.has(testCase.id)) : allCases;
 const db = new Neo4jRunner(config.neo4j);
 
 /** The eval scores queries, not prose: the final answer step is skipped. */
