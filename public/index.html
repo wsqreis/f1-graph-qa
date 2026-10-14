@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F1 Graph Q&amp;A</title>
+  <style>
+    :root {
+      --bg: #f6f6f4; --panel: #ffffff; --text: #18181b; --muted: #6b6b70;
+      --accent: #c8102e; --border: #e4e4e0; --code: #f1f1ee; --you: #fbe9ec;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #131315; --panel: #1c1c1f; --text: #ececee; --muted: #9a9aa0;
+        --accent: #ff5a6e; --border: #2e2e33; --code: #232327; --you: #3a1f25;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 860px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; min-height: 100dvh; gap: 12px; }
+    header h1 { font-size: 20px; margin: 8px 0 0; }
+    header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    #log { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .q { align-self: flex-end; background: var(--you); padding: 8px 12px; border-radius: 12px; max-width: 80%; }
+    .a { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+    .a .text { white-space: pre-wrap; }
+    .error { color: var(--accent); }
+    details { margin-top: 10px; font-size: 13px; }
+    summary { cursor: pointer; color: var(--muted); }
+    pre { background: var(--code); padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 8px 0; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+    th, td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; white-space: nowrap; }
+    th { background: var(--code); }
+    form { display: flex; gap: 8px; position: sticky; bottom: 0; background: var(--bg); padding: 8px 0; }
+    input { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips button { background: transparent; color: var(--accent); border: 1px solid var(--border); padding: 4px 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>F1 Graph Q&amp;A</h1>
+    <p>Ask about any Grand Prix since 1950. An LLM writes the Cypher, Neo4j answers, and you can inspect both.</p>
+  </header>
+  <div class="chips" id="examples"></div>
+  <div id="log" aria-live="polite"></div>
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="e.g. Who won the most races from pole position?" aria-label="Question">
+    <button id="send">Ask</button>
+  </form>
+</main>
+<script>
+  const log = document.getElementById('log');
+  const form = document.getElementById('form');
+  const input = document.getElementById('input');
+  const send = document.getElementById('send');
+  let threadId;
+
+  for (const text of [
+    'Who has won the most races at Monaco?',
+    'Which drivers won a title with two different teams?',
+    'How many podiums did Ferrari get in 2004?',
+    'Who retired most often with engine failures?',
+  ]) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.textContent = text;
+    chip.onclick = () => { input.value = text; form.requestSubmit(); };
+    document.getElementById('examples').append(chip);
+  }
+
+  const el = (tag, props = {}, children = []) => {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children);
+    return node;
+  };
+  const cell = (value) => (value === null ? '–' : typeof value === 'object' ? JSON.stringify(value) : String(value));
+
+  function renderAnswer(body) {
+    const box = el('div', { className: 'a' }, [el('div', { className: 'text', textContent: body.answer })]);
+    if (body.cypher) {
+      const head = el('tr', {}, body.columns.map((c) => el('th', { textContent: c })));
+      const rows = body.rows.map((row) => el('tr', {}, body.columns.map((c) => el('td', { textContent: cell(row[c]) }))));
+      box.append(el('details', {}, [
+        el('summary', { textContent: `Cypher and ${body.rows.length} row(s)${body.attempts > 1 ? ` · self-corrected in ${body.attempts} attempts` : ''}` }),
+        el('pre', { textContent: body.cypher }),
+        el('div', { className: 'table-wrap' }, [el('table', {}, [head, ...rows])]),
+      ]));
+    }
+    log.append(box);
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+    log.append(el('div', { className: 'q', textContent: question }));
+    input.value = '';
+    send.disabled = true;
+    try {
+      const response = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ question, threadId }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error);
+      threadId = body.threadId;
+      renderAnswer(body);
+    } catch (error) {
+      log.append(el('div', { className: 'a error', textContent: error.message }));
+    } finally {
+      send.disabled = false;
+      input.focus();
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+  });
+</script>
+</body>
+</html>

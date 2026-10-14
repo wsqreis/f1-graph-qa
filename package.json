@@ -1,0 +1,37 @@
+{
+  "name": "f1-graph-qa",
+  "version": "0.1.0",
+  "description": "Ask questions about Formula 1 history in plain English: an LLM writes Cypher over a Neo4j graph of every Grand Prix since 1950",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "data:download": "node scripts/download.ts",
+    "data:load": "node --env-file-if-exists=.env scripts/load.ts",
+    "dev": "node --watch --env-file-if-exists=.env src/index.ts",
+    "start": "node --env-file-if-exists=.env src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "NODE_ENV=test node --env-file-if-exists=.env --test tests/*.test.ts",
+    "eval": "node --env-file-if-exists=.env eval/run.ts"
+  },
+  "author": "wsqreis",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/core": "^1.2.17",
+    "@langchain/langgraph": "^1.5.0",
+    "@langchain/openai": "^1.6.2",
+    "csv-parse": "^7.0.3",
+    "fastify": "^5.12.7",
+    "fflate": "^0.8.3",
+    "neo4j-driver": "^5.28.3",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  }
+}
