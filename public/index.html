@@ -27,7 +27,7 @@
     .error { color: var(--accent); }
     details { margin-top: 10px; font-size: 13px; }
     summary { cursor: pointer; color: var(--muted); }
-    pre { background: var(--code); padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 8px 0; }
+    pre { background: var(--code); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; font-size: 12px; margin: 8px 0; }
     .table-wrap { overflow-x: auto; }
     table { border-collapse: collapse; font-size: 12px; margin-top: 4px; }
     th, td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; white-space: nowrap; }
@@ -79,9 +79,11 @@
     return node;
   };
   const cell = (value) => (value === null ? '–' : typeof value === 'object' ? JSON.stringify(value) : String(value));
+  // Models often answer with **bold**: show it as bold, building nodes rather than HTML so nothing is injected.
+  const prose = (text) => text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? el('strong', { textContent: part }) : part));
 
   function renderAnswer(body) {
-    const box = el('div', { className: 'a' }, [el('div', { className: 'text', textContent: body.answer })]);
+    const box = el('div', { className: 'a' }, [el('div', { className: 'text' }, prose(body.answer))]);
     if (body.cypher) {
       const head = el('tr', {}, body.columns.map((c) => el('th', { textContent: c })));
       const rows = body.rows.map((row) => el('tr', {}, body.columns.map((c) => el('td', { textContent: cell(row[c]) }))));
