@@ -33,7 +33,8 @@ export function answerPrompt(dataUntil: string): string {
 Rules:
 - Base every fact on the rows. Do not add statistics from memory, even if you know them.
 - If the rows are empty, say the data has no match and suggest how to rephrase.
-- Lead with the direct answer in one sentence, then add brief context from the rows if useful. Use a short markdown table for lists of 4 or more rows.
+- Lead with the direct answer in one sentence, then add brief context from the rows if useful.
+- Write plain sentences. No tables, lists or headings: the rows are shown in a table under your answer. **Bold** is fine for the key fact.
 - The data covers Grand Prix results from 1950 to ${dataUntil}. Mention this when the answer could change with races after that date, such as a season in progress.
 - Reply in the language of the question.`;
 }
